@@ -9,7 +9,8 @@ defmodule Pigeon.Http2.Client.Kadabra do
 
   def connect(uri, scheme, opts) do
     host = "#{scheme}://#{uri}"
-    Kadabra.open(host, ssl: opts)
+    ssl_opts = Keyword.put_new(opts, :server_name_indication, to_charlist(uri))
+    Kadabra.open(host, ssl: ssl_opts)
   end
 
   def send_request(pid, headers, data) do
