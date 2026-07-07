@@ -8,24 +8,26 @@ defmodule Pigeon.Http2.Client.Kadabra do
   end
 
   def connect(uri, scheme, opts) do
-    host = "#{scheme}://#{uri}"
-    ssl_opts = Keyword.put_new(opts, :server_name_indication, to_charlist(uri))
-    Kadabra.open(host, ssl: ssl_opts)
+    url = "#{scheme}://#{uri}"
+    host = URI.parse(url).host || uri
+    host_charlist = String.to_charlist(host)
+
+    ssl_opts =
+      opts
+      |> Keyword.delete(:server_name_indication)
+      |> Keyword.delete(:customize_hostname_check)
+      |> Keyword.put(:server_name_indication, host_charlist)
+      |> Keyword.put(:customize_hostname_check,
+        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+      )
+
+    Kadabra.open(url, ssl: ssl_opts)
   end
 
   def send_request(pid, headers, data) do
     Kadabra.request(pid, headers: headers, body: data)
   end
 
-  @doc ~S"""
-  send_ping/1 implementation
-
-  ## Examples
-
-      iex> {:ok, pid} = Kadabra.open("https://www.google.com")
-      iex> Pigeon.Http2.Client.Kadabra.send_ping(pid)
-      :ok
-  """
   def send_ping(pid) do
     Kadabra.ping(pid)
   end
